@@ -42,8 +42,6 @@ BOOSTER_ROLE_ID = 1490690920222556364
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-intents.invites = True 
-intents.manage
 
 
 bot = commands.Bot(command_prefix='!', intents=intents)
