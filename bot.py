@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from modules.selfroles import RoleView01, RoleView02, color_booster
 from modules.weekly import weekly_task
+from modules.welcome_msg import on_member_join
 
 # -------------------------------------------------------
 
@@ -41,8 +42,12 @@ BOOSTER_ROLE_ID = 1490690920222556364
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.invites = True 
+intents.manage
+
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+bot.add_listener(on_member_join)
 
 
 # -------------------------------------------------------
@@ -54,9 +59,10 @@ async def on_ready():
     print(f"Der Discord Bot [{bot.user}] ist online!")
 
 
-    bot.add_view(RoleView01())
-    bot.add_view(RoleView02())
-    bot.add_view(color_booster(BOOSTER_ROLE_ID))
+    if not bot.persistent_views:
+        bot.add_view(RoleView01())
+        bot.add_view(RoleView02())
+        bot.add_view(color_booster(BOOSTER_ROLE_ID))
 
     # Weekly Task starten
     if not weekly_task.is_running():
@@ -97,6 +103,12 @@ def build_color_embed() -> discord.Embed:
 # -------------------------------------------------------
 # Commands
 # -------------------------------------------------------
+
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong 🏓")
+
 
 @bot.command()
 @commands.has_any_role(*ADMIN_ROLES)
