@@ -14,7 +14,7 @@ from modules.welcome_msg import on_member_join
 # Ticket System
 from ticket_system.utils.config import cfg
 from ticket_system.utils.database import db
-from ticket_system.views.ticket_views import TicketCategoryView, TicketControlView, ReopenView
+from ticket_system.views.ticket_views import TicketCategoryView, TicketControlView
 from ticket_system.views.application_views import ApplicationControlView, app_db
 
 # -------------------------------------------------------
@@ -90,7 +90,6 @@ async def on_ready():
     bot.add_view(TicketCategoryView())
     for tid in db.all():
         bot.add_view(TicketControlView(int(tid)))
-        bot.add_view(ReopenView(int(tid)))
     for aid in app_db.all():
         bot.add_view(ApplicationControlView(int(aid)))
 
