@@ -5,7 +5,7 @@ from datetime import datetime
 from ..utils.config   import cfg
 from ..utils.database import db
 from ..utils.helpers  import (
-    get_or_create_category, get_support_roles, is_support,
+    get_ticket_category, get_support_roles, is_support,
     create_transcript, cleanup_transcript, send_log, log_embed,
 )
 
@@ -64,25 +64,14 @@ class TicketCreateModal(discord.ui.Modal):
         user   = interaction.user
         num    = db.next_id()
 
-        support_roles = await get_support_roles(guild)
+        category = await get_ticket_category(guild)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             user: discord.PermissionOverwrite(
                 view_channel=True, send_messages=True,
                 read_message_history=True, attach_files=True,
             ),
-            guild.me: discord.PermissionOverwrite(
-                view_channel=True, send_messages=True,
-                read_message_history=True, manage_channels=True, manage_messages=True,
-            ),
         }
-        for role in support_roles:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True, send_messages=True,
-                read_message_history=True, manage_messages=True,
-            )
-
-        category = await get_or_create_category(guild, cfg["ticket_category_name"])
         channel  = await guild.create_text_channel(
             name=f"ticket-{num:04d}-{user.name[:10].lower()}",
             category=category,
@@ -122,6 +111,7 @@ class TicketCreateModal(discord.ui.Modal):
             icon_url=user.display_avatar.url,
         )
 
+        support_roles = await get_support_roles(guild)
         mentions = " ".join(r.mention for r in support_roles)
         await channel.send(
             content=f"{user.mention} {mentions}".strip(),
@@ -168,37 +158,6 @@ class TicketControlView(discord.ui.View):
             view=ConfirmCloseView(self.ticket_number),
             ephemeral=True,
         )
-
-    @discord.ui.button(
-        label="Übernehmen", style=discord.ButtonStyle.success,
-        emoji="🙋", custom_id="ticket_claim",
-    )
-    async def claim_ticket(self, interaction: discord.Interaction, _: discord.ui.Button):
-        if not is_support(interaction.user):
-            return await interaction.response.send_message(
-                "❌  Nur Support-Mitarbeiter können ein Ticket übernehmen.", ephemeral=True
-            )
-        tdata = db.get(str(self.ticket_number))
-        if not tdata:
-            return await interaction.response.send_message("❌  Ticket nicht gefunden.", ephemeral=True)
-        if tdata.get("claimed_by"):
-            claimer = interaction.guild.get_member(int(tdata["claimed_by"]))
-            return await interaction.response.send_message(
-                f"❌  Bereits übernommen von "
-                f"{claimer.mention if claimer else 'einem anderen Mitarbeiter'}.",
-                ephemeral=True,
-            )
-        db.update(str(self.ticket_number), {"claimed_by": str(interaction.user.id)})
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                description=f"✅  {interaction.user.mention} hat dieses Ticket übernommen.",
-                color=discord.Color.from_str(cfg["colors"]["claimed"]),
-            )
-        )
-        await send_log(interaction.guild, log_embed(
-            "🙋  Ticket übernommen", cfg["colors"]["claimed"],
-            **{"Ticket": f"#{self.ticket_number:04d}", "Von": interaction.user.mention},
-        ))
 
     @discord.ui.button(
         label="User hinzufügen", style=discord.ButtonStyle.secondary,
@@ -251,44 +210,13 @@ class AddUserModal(discord.ui.Modal, title="User hinzufügen"):
         await interaction.response.send_message(f"✅  {member.mention} wurde hinzugefügt.")
 
 
-class ReopenView(discord.ui.View):
-    def __init__(self, ticket_number: int):
-        super().__init__(timeout=None)
-        self.ticket_number = ticket_number
-        for child in self.children:
-            child.custom_id = f"{child.custom_id}_{ticket_number}"
-
-    @discord.ui.button(
-        label="Wiedereröffnen", style=discord.ButtonStyle.primary,
-        emoji="🔓", custom_id="ticket_reopen",
-    )
-    async def reopen(self, interaction: discord.Interaction, _: discord.ui.Button):
-        if not is_support(interaction.user):
-            return await interaction.response.send_message("❌  Keine Berechtigung.", ephemeral=True)
-        tdata = db.get(str(self.ticket_number))
-        if not tdata:
-            return await interaction.response.send_message("❌  Ticket nicht gefunden.", ephemeral=True)
-        user = interaction.guild.get_member(int(tdata["user_id"]))
-        if user:
-            await interaction.channel.set_permissions(
-                user, view_channel=True, send_messages=True, read_message_history=True,
-            )
-        db.update(str(self.ticket_number), {"status": "open", "closed_at": None})
-        new_name = interaction.channel.name.replace("closed-", "ticket-", 1)
-        await interaction.channel.edit(name=new_name)
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                description=f"🔓  Ticket von {interaction.user.mention} wiedereröffnet.",
-                color=discord.Color.from_str(cfg["colors"]["open"]),
-            )
-        )
-        self.stop()
-
 
 async def _close_ticket(interaction: discord.Interaction, ticket_number: int):
     tdata = db.get(str(ticket_number))
     if not tdata:
         return await interaction.response.send_message("❌  Ticket nicht gefunden.", ephemeral=True)
+
+    await interaction.response.defer()
 
     guild   = interaction.guild
     channel = interaction.channel
@@ -322,14 +250,13 @@ async def _close_ticket(interaction: discord.Interaction, ticket_number: int):
         await channel.set_permissions(owner, overwrite=None)
     await channel.edit(name=channel.name.replace("ticket-", "closed-", 1))
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         embed=discord.Embed(
             title="🔒  Ticket geschlossen",
             description=f"Geschlossen von {interaction.user.mention}.",
             color=discord.Color.from_str(cfg["colors"]["closed"]),
             timestamp=datetime.utcnow(),
         ),
-        view=ReopenView(ticket_number),
     )
 
     le = log_embed(

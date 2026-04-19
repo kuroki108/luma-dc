@@ -8,17 +8,33 @@ from .config import cfg
 _TRANSCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "transcripts")
 
 
-async def get_or_create_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
+async def get_ticket_category(guild: discord.Guild) -> discord.CategoryChannel:
+    cat_id = cfg.get("ticket_category_id", "")
+    if not cat_id:
+        raise ValueError("ticket_category_id ist nicht in der config.json gesetzt.")
+    category = guild.get_channel(int(cat_id))
+    if category is None or not isinstance(category, discord.CategoryChannel):
+        raise ValueError(f"Kategorie mit ID {cat_id} nicht gefunden.")
+
+    support_roles = await get_support_roles(guild)
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        guild.me: discord.PermissionOverwrite(view_channel=True, manage_channels=True),
+        guild.me: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_messages=True),
     }
-    for cat in guild.categories:
-        if cat.name == name:
-            if cat.overwrites.get(guild.default_role) != overwrites[guild.default_role]:
-                await cat.edit(overwrites=overwrites)
-            return cat
-    return await guild.create_category(name, overwrites=overwrites)
+    for role in support_roles:
+        overwrites[role] = discord.PermissionOverwrite(
+            view_channel=True, send_messages=True,
+            read_message_history=True, manage_messages=True,
+        )
+
+    needs_update = (
+        category.overwrites_for(guild.default_role).view_channel is not False
+        or any(category.overwrites_for(r).view_channel is not True for r in support_roles)
+    )
+    if needs_update:
+        await category.edit(overwrites=overwrites)
+
+    return category
 
 
 def is_support(member: discord.Member) -> bool:
