@@ -8,7 +8,7 @@ import discord
 from ..utils.config   import cfg
 from ..utils.database import TicketDatabase
 from ..utils.helpers  import (
-    get_or_create_category, get_support_roles,
+    get_ticket_category, get_support_roles,
     is_support, send_log, log_embed,
 )
 
@@ -51,26 +51,13 @@ class BewerbungModal(discord.ui.Modal, title="Bewerbung für unser Team"):
         user   = interaction.user
         num    = app_db.next_id()
 
-        support_roles = await get_support_roles(guild)
+        category = await get_ticket_category(guild)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             user: discord.PermissionOverwrite(
                 view_channel=True, send_messages=True, read_message_history=True,
             ),
-            guild.me: discord.PermissionOverwrite(
-                view_channel=True, send_messages=True,
-                read_message_history=True, manage_channels=True, manage_messages=True,
-            ),
         }
-        for role in support_roles:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True, send_messages=True,
-                read_message_history=True, manage_messages=True,
-            )
-
-        category = await get_or_create_category(
-            guild, cfg.get("application_category_name", "📝 Bewerbungen")
-        )
         channel = await guild.create_text_channel(
             name=f"bewerbung-{num:04d}-{user.name[:10].lower()}",
             category=category,
