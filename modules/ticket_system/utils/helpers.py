@@ -8,6 +8,19 @@ from .config import cfg
 _TRANSCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "transcripts")
 
 
+async def get_or_create_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        guild.me: discord.PermissionOverwrite(view_channel=True, manage_channels=True),
+    }
+    for cat in guild.categories:
+        if cat.name == name:
+            if cat.overwrites_for(guild.default_role).view_channel is not False:
+                await cat.edit(overwrites=overwrites)
+            return cat
+    return await guild.create_category(name, overwrites=overwrites)
+
+
 async def get_ticket_category(guild: discord.Guild) -> discord.CategoryChannel:
     cat_id = cfg.get("ticket_category_id", "")
     if not cat_id:
