@@ -96,6 +96,7 @@ class BewerbungModal(discord.ui.Modal, title="Bewerbung für unser Team"):
             icon_url=user.display_avatar.url,
         )
 
+        support_roles = await get_support_roles(guild)
         mentions = " ".join(r.mention for r in support_roles)
         await channel.send(
             content=f"{user.mention} {mentions}".strip(),
