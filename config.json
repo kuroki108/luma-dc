@@ -1,0 +1,52 @@
+{
+    "prefix": "!",
+    "guild_id": "1490653912141795439",
+
+    "ticket_category_name": "🎫 Tickets",
+
+    "support_role_ids": [
+    "1490723942946705558",
+    "1490723470483521706",
+    "1490678382713638962",
+    "1490729390513066044"],
+
+    "log_channel_id": "1492653082532643098",
+
+  "delete_closed_after_seconds": 0,
+
+  "colors": {
+    "panel" : "#5865F2",
+    "open"  : "#57F287",
+    "closed": "#ED4245",
+    "claimed": "#FEE75C"
+  },
+
+  "panel": {
+    "title"      : "🎫 Support-Ticket System",
+    "description": "Benötigst du Hilfe oder hast du ein Anliegen?\n\nWähle unten eine Kategorie aus, um ein Ticket zu eröffnen.\nUnser Team meldet sich so schnell wie möglich!\n\n⏰ Antwortzeit: Innerhalb von 24 Stunden\n📋 Bitte beschreibe dein Anliegen so genau wie möglich.",
+    "footer"     : "Öffne ein Ticket – Wir helfen dir gerne!"
+  },
+
+  "application_category_name": "📝 Bewerbungen",
+
+  "ticket_categories": [
+    {
+      "label"      : "Allgemeiner Support",
+      "description": "Fragen & allgemeine Hilfe",
+      "emoji"      : "❓",
+      "value"      : "general"
+    },
+    {
+      "label"      : "Technisches Problem",
+      "description": "Bugs, Fehler & technische Hilfe",
+      "emoji"      : "🔧",
+      "value"      : "technical"
+    },
+    {
+      "label"      : "Report / Meldung",
+      "description": "User oder Regelverstoß melden",
+      "emoji"      : "🚨",
+      "value"      : "report"
+    }
+  ]
+}

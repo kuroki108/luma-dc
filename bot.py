@@ -1,20 +1,32 @@
+import sys
 import discord
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "modules"))
+
+# Modules
 from modules.selfroles import RoleView01, RoleView02, color_booster
 from modules.weekly import weekly_task
 from modules.welcome_msg import on_member_join
 
+# Ticket System
+from ticket_system.utils.config import cfg
+from ticket_system.utils.database import db
+from ticket_system.views.ticket_views import TicketCategoryView, TicketControlView, ReopenView
+from ticket_system.views.application_views import ApplicationControlView, app_db
+
 # -------------------------------------------------------
 
 load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv("DISCORD_TOKEN")
 if TOKEN is None:
     raise ValueError("DISCORD_TOKEN environment ERROR")
 
 # -------------------------------------------------------
 # Selfroles Embed
+# -------------------------------------------------------
 EMBED_IMAGE_URL = "attachment://banner.png"
 EMBED_COLOR     = discord.Color.purple()
 EMBED_TITLE     = "Selfroles"
@@ -23,7 +35,6 @@ EMBED_DESC      = (
     "Du kannst Rollen jederzeit wechseln oder entfernen."
 )
 
-# Color Embed
 COLOR_IMAGE_URL = "attachment://banner_color.png"
 COLOR_COLOR     = discord.Color.purple()
 COLOR_TITLE     = "🎨 Wähl deine Farbe"
@@ -32,21 +43,32 @@ COLOR_DESC      = (
     "Such dir eine Farbe aus und mach deinen Namen zum Hingucker."
 )
 
-# Berechtigte Rollen-IDs
-ADMIN_ROLES = (1490723942946705558, 1490723470483521706, 1490678382713638962)
-
+ADMIN_ROLES     = (1490723942946705558, 1490723470483521706, 1490678382713638962)
 BOOSTER_ROLE_ID = 1490690920222556364
 
+# -------------------------------------------------------
+# Bot Setup
 # -------------------------------------------------------
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+bot = commands.Bot(
+    command_prefix=cfg["prefix"],
+    intents=intents,
+    help_command=None,
+)
 
-bot = commands.Bot(command_prefix='!', intents=intents)
 bot.add_listener(on_member_join)
 
+# -------------------------------------------------------
+# Setup Hook — lädt Extensions bevor der Bot sich verbindet
+# -------------------------------------------------------
+
+@bot.event
+async def setup_hook():
+    await bot.load_extension("ticket_system")
 
 # -------------------------------------------------------
 # Events
@@ -54,54 +76,85 @@ bot.add_listener(on_member_join)
 
 @bot.event
 async def on_ready():
-    print(f"Der Discord Bot [{bot.user}] ist online!")
+    print(f"\n{'─'*45}")
+    print(f"  ✅  Eingeloggt als : {bot.user} ({bot.user.id})")
+    print(f"  📡  Server        : {len(bot.guilds)}")
 
-
+    # --- Selfrole Views ---
     if not bot.persistent_views:
         bot.add_view(RoleView01())
         bot.add_view(RoleView02())
         bot.add_view(color_booster(BOOSTER_ROLE_ID))
 
-    # Weekly Task starten
+    # --- Ticket Views ---
+    bot.add_view(TicketCategoryView())
+    for tid in db.all():
+        bot.add_view(TicketControlView(int(tid)))
+        bot.add_view(ReopenView(int(tid)))
+    for aid in app_db.all():
+        bot.add_view(ApplicationControlView(int(aid)))
+
+    # --- Slash-Command Sync ---
+    try:
+        guild = discord.Object(id=int(cfg["guild_id"]))
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"  🔄  Slash-Commands : {len(synced)} synchronisiert")
+        bot.tree.clear_commands(guild=None)
+        await bot.tree.sync()
+    except Exception as e:
+        print(f"  ❌  Sync-Fehler    : {e}")
+
+    # --- Weekly Task ---
     if not weekly_task.is_running():
         weekly_task._bot = bot
         weekly_task.start()
 
+    await bot.change_presence(status=discord.Status.online, activity=None)
+    print(f"{'─'*45}\n")
+
 
 @bot.event
 async def on_command_error(ctx, error):
+    """Fehlerhandler für Prefix-Commands (!selfroles, !color, …)"""
     if isinstance(error, (commands.MissingRole, commands.MissingAnyRole)):
         await ctx.send("Du hast keine Berechtigung diesen Befehl auszuführen.", delete_after=3)
     else:
         raise error
+
+
+@bot.event
+async def on_app_command_error(interaction: discord.Interaction, error):
+    """Fehlerhandler für Slash-Commands (Ticket-System, …)"""
+    msg = (
+        "❌ Keine Berechtigung."
+        if isinstance(error, discord.app_commands.MissingPermissions)
+        else f"❌ Fehler: {error}"
+    )
+    if interaction.response.is_done():
+        await interaction.followup.send(msg, ephemeral=True)
+    else:
+        await interaction.response.send_message(msg, ephemeral=True)
+    print(f"[AppCommandError] {error}")
 
 # -------------------------------------------------------
 # Embed Builder
 # -------------------------------------------------------
 
 def build_selfroles_embed() -> discord.Embed:
-    embed = discord.Embed(
-        title=EMBED_TITLE,
-        description=EMBED_DESC,
-        color=EMBED_COLOR,
-    )
+    embed = discord.Embed(title=EMBED_TITLE, description=EMBED_DESC, color=EMBED_COLOR)
     embed.set_image(url=EMBED_IMAGE_URL)
     return embed
 
 
 def build_color_embed() -> discord.Embed:
-    embed = discord.Embed(
-        title=COLOR_TITLE,
-        description=COLOR_DESC,
-        color=COLOR_COLOR,
-    )
+    embed = discord.Embed(title=COLOR_TITLE, description=COLOR_DESC, color=COLOR_COLOR)
     embed.set_image(url=COLOR_IMAGE_URL)
     return embed
 
 # -------------------------------------------------------
-# Commands
+# Prefix-Commands
 # -------------------------------------------------------
-
 
 @bot.command()
 async def ping(ctx):
@@ -156,7 +209,8 @@ async def color(ctx):
 
     await ctx.send(file=file, embed=build_color_embed(), view=color_booster(BOOSTER_ROLE_ID))
 
-
+# -------------------------------------------------------
+# Start
 # -------------------------------------------------------
 
 if __name__ == "__main__":
