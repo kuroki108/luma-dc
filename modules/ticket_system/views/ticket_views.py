@@ -71,6 +71,10 @@ class TicketCreateModal(discord.ui.Modal):
                 view_channel=True, send_messages=True,
                 read_message_history=True, attach_files=True,
             ),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True, send_messages=True,
+                read_message_history=True, manage_channels=True, manage_messages=True,
+            ),
         }
         channel  = await guild.create_text_channel(
             name=f"ticket-{num:04d}-{user.name[:10].lower()}",

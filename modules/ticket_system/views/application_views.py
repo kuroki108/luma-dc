@@ -57,6 +57,10 @@ class BewerbungModal(discord.ui.Modal, title="Bewerbung für unser Team"):
             user: discord.PermissionOverwrite(
                 view_channel=True, send_messages=True, read_message_history=True,
             ),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True, send_messages=True,
+                read_message_history=True, manage_channels=True, manage_messages=True,
+            ),
         }
         channel = await guild.create_text_channel(
             name=f"bewerbung-{num:04d}-{user.name[:10].lower()}",
