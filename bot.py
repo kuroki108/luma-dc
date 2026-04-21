@@ -4,8 +4,6 @@ import os
 from dotenv import load_dotenv
 from discord.ext import commands
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "modules"))
-
 # Modules
 from modules.selfroles import RoleView01, RoleView02, color_booster
 from modules.weekly import weekly_task
