@@ -1,119 +1,154 @@
-# 🤖 Luma DC Bot
+# Luma DC Bot
 
-**Der All-in-One Discord Bot in Python**
-
----
-
-## 📌 Übersicht
-
-Der **Luma DC Bot** ist ein vielseitiger Discord-Bot, der mehrere Funktionen in einem vereint.
-Ziel ist es, Server-Management, Community-Interaktion und Automatisierung einfach und effizient zu gestalten.
-
-Der Bot wurde in **Python** entwickelt und ist flexibel erweiterbar.
+Ein umfassender Discord-Community-Bot für deutsche Server – gebaut mit discord.py 2.x. Kombiniert ein vollständiges Ticket-System, Selfroles, Bewerbungsmanagement, automatische Willkommensnachrichten und einen Wöchentlichen-Task-Scheduler in einem einzigen Bot.
 
 ---
 
-## ⚙️ Features
+## Features
 
-- 👋 **Willkommenssystem**
-  - Automatische Nachrichten beim Joinen
-  - Rollenvergabe beim Beitritt
+### 🎫 Ticket-System
+- Tickets öffnen per Slash-Command mit Kategorieauswahl (Allgemeiner Support, Technisches Problem, Report)
+- Vollständige Ticket-Verwaltung: Add/Remove User, Umbenennen, Schließen
+- **HTML-Transkript** bei Ticket-Schließung automatisch per DM zugeschickt
+- Logging aller Aktionen in einen dedizierten Log-Channel
+- Auto-Delete nach Schließung (konfigurierbar in Sekunden)
 
-- 🎭 **Self-Role-Managment**
-  - Drop-Down Menu (z. B. Gender, Age, Region)
-  - Erweiterbar für Reaction Roles
+### 📝 Bewerbungssystem
+- Modal-basierte Teambewerbungen mit 5 Feldern (IGN, Alter, Erfahrung, Aktivität, Motivation)
+- Support-Team kann Bewerbungen annehmen, ablehnen oder schließen
+- Bewerber erhalten Entscheidung automatisch per DM
 
-- 💬 **Commands**
-  - Standard Commands wie `ping`, `help`, etc.
-  - Eigene Commands leicht hinzufügbar
+### 🎭 Selfroles
+- Interaktive Dropdown-Menüs zur Selbst-Rollenvergabe
+- 6 Kategorien: **Geschlecht, Alter, Bundesland, DM-Status, Spiele, Ping-Rollen**
+- **Exklusive Farbrollen** für Server-Booster
+- Persistent – überlebt Bot-Neustarts
 
-- 🎮 **Minigames (optional)**
-  - Kleine Spiele für mehr Interaktion
+### 👋 Willkommensnachrichten
+- Automatische Begrüßung im definierten Channel bei Server-Beitritt
+- Weist neuen Mitgliedern automatisch Basis-Rollen zu
 
-- 🔔 **Ping-System**
-  - Rollen für Benachrichtigungen
-
-- 📩 **DM / Support Features**
-  - Automatisierte Nachrichten möglich
+### 📅 Wöchentlicher Scheduler
+- Montags 18:00 Uhr: Wöchentliches Meeting-Post mit ✅/❌-Reaktionen
+- Dienstags 17:45 Uhr: 15-Minuten-Erinnerung vor dem Meeting
+- Läuft vollautomatisch im Hintergrund (Zeitzone: Europe/Berlin)
 
 ---
 
-## 🛠️ Installation
+## Projektstruktur
 
-### 1. Repository klonen
-
-```bash
-git clone https://github.com/dein-username/luma-dc-bot.git
-cd luma-dc-bot
+```
+luma-dc/
+├── bot.py                    # Einstiegspunkt
+├── config.json               # Konfiguration (IDs, Farben, Kategorien)
+├── requirements.txt
+├── .env                      # Discord Token (nicht ins Repo!)
+├── assets/                   # Banner-Bilder für Selfroles
+├── modules/
+│   ├── selfroles.py          # Dropdown-Menüs für Rollen
+│   ├── welcome_msg.py        # Willkommensnachrichten
+│   └── weekly.py             # Wöchentlicher Task-Scheduler
+└── ticket_system/
+    ├── cogs/                 # Slash-Commands
+    │   ├── ticket_commands.py
+    │   ├── ticket_panel.py
+    │   └── application_commands.py
+    ├── views/                # UI-Komponenten (Buttons, Modals, Selects)
+    │   ├── ticket_views.py
+    │   └── application_views.py
+    ├── utils/
+    │   ├── config.py         # Config-Loader
+    │   ├── database.py       # JSON-Datenbank
+    │   └── helpers.py        # Hilfsfunktionen
+    └── data/
+        ├── tickets.json
+        └── applications.json
 ```
 
-### 2. Abhängigkeiten installieren
+---
+
+## Setup
+
+### 1. Abhängigkeiten installieren
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Konfiguration
-
-Passe die Werte im Code oder in einer `.env` Datei an:
+### 2. `.env` erstellen
 
 ```env
-TOKEN = "DEIN_DISCORD_BOT_TOKEN"
+DISCORD_TOKEN=dein_bot_token_hier
 ```
 
-### ▶️ Bot starten
+### 3. `config.json` anpassen
+
+| Feld | Beschreibung |
+|---|---|
+| `prefix` | Prefix für Prefix-Commands (Standard: `!`) |
+| `guild_id` | ID deines Discord-Servers |
+| `ticket_category_id` | Kategorie-ID für Ticket-Channels |
+| `support_role_ids` | Rollen-IDs mit Support-Berechtigung |
+| `log_channel_id` | Channel für Log-Nachrichten |
+| `delete_closed_after_seconds` | Verzögerung vor Auto-Delete geschlossener Tickets |
+| `ticket_categories` | Ticket-Typen (label, emoji, value) |
+
+### 4. Bot starten
 
 ```bash
-python main.py
+python bot.py
+```
+
+### 5. Panel einrichten
+
+Nach dem Start im gewünschten Channel ausführen:
+
+```
+/ticket-panel
 ```
 
 ---
 
-## 🧠 Voraussetzungen
+## Commands
 
-- Python 3.10 oder neuer
-- Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
-- Internetverbindung
+### Slash-Commands
 
----
+| Command | Beschreibung | Berechtigung |
+|---|---|---|
+| `/ticket-panel` | Postet das Ticket-Erstellungs-Panel | Admin |
+| `/ticket-bewerbung` | Teambewerbung einreichen | Alle |
+| `/ticket-add @user` | User zum Ticket hinzufügen | Support |
+| `/ticket-remove @user` | User aus Ticket entfernen | Support |
+| `/ticket-rename name` | Ticket-Channel umbenennen | Support |
+| `/ticket-close` | Ticket schließen (+ Transkript) | Support / Ersteller |
 
-## 📂 Projektstruktur (Beispiel)
+### Prefix-Commands
 
-```
-luma-dc-bot/
-├── main.py
-├── commands/
-├── events/
-├── config.py
-└── requirements.txt
-```
-
----
-
-## 🚀 Erweiterung
-
-Der Bot ist modular aufgebaut und kann leicht erweitert werden:
-
-- Neue Commands hinzufügen
-- Events erweitern
-- Datenbanken integrieren (z. B. SQLite)
+| Command | Beschreibung | Berechtigung |
+|---|---|---|
+| `!selfroles` | Postet das Selfroles-Embed | Admin |
+| `!color` | Postet das Booster-Farbrollen-Embed | Admin |
+| `!ping` | Pong | Alle |
 
 ---
 
-## ⚠️ Hinweise
+## Technisches
 
-- 🔒 Bot-Token niemals veröffentlichen
-- IDs korrekt setzen (Channels & Rollen)
-- Bot benötigt passende Berechtigungen auf dem Server
-
----
-
-## 📜 Lizenz
-
-Frei nutzbar und anpassbar.
+- **Persistenz**: JSON-basiert, kein Datenbank-Server nötig
+- **Slash-Commands**: Guild-spezifisch synchronisiert (kein globales Warten)
+- **Views**: Persistent – funktionieren nach Bot-Neustart weiterhin
+- **Sprache**: Deutsch
 
 ---
 
-## 👨‍💻 Entwickler
+## Voraussetzungen
 
-Erstellt von **Finn** — Python • Discord Bots • IT 🚀
+- Python 3.10+
+- discord.py 2.7.1
+- Discord Bot mit den Intents `message_content` und `members`
+
+---
+
+## Entwickler
+
+Erstellt von **Finn** — Python • Discord Bots • IT
