@@ -120,7 +120,7 @@ class BewerbungModal(discord.ui.Modal, title="Bewerbung für unser Team"):
         await send_log(guild, log_embed(
             "📝  Neue Bewerbung", cfg["colors"]["open"],
             **{"Bewerbung": f"#{num:04d}", "User": user.mention,
-               "Name": self.ingame_name.value},
+            "Name": self.ingame_name.value},
         ))
 
 

@@ -6,7 +6,7 @@ from discord.ext import commands
 
 # Modules
 from modules.selfroles import RoleView01, RoleView02, color_booster
-from modules.weekly import weekly_task
+# from modules.weekly import weekly_task  # deaktiviert
 from modules.welcome_msg import on_member_join
 
 # Ticket System
@@ -102,10 +102,10 @@ async def on_ready():
     except Exception as e:
         print(f"  ❌  Sync-Fehler    : {e}")
 
-    # --- Weekly Task ---
-    if not weekly_task.is_running():
-        weekly_task._bot = bot
-        weekly_task.start()
+    # --- Weekly Task (deaktiviert) ---
+    # if not weekly_task.is_running():
+    #     weekly_task._bot = bot
+    #     weekly_task.start()
 
     await bot.change_presence(status=discord.Status.online, activity=None)
     print(f"{'─'*45}\n")
